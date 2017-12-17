@@ -1,6 +1,7 @@
 package ioc;
 
 import repository.RepoBean;
+import repository.RepoBeanInterface;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +18,6 @@ public class SimpleIoCRunner {
         //*repoBean*
         //RepoBean.class
         SimpleIoC ioC = new SimpleIoC(config);
-        RepoBean repoBean = (RepoBean) ioC.getBean("repoBean");
+        RepoBeanInterface repoBean = (RepoBeanInterface) ioC.getBean("repoBean");
     }
 }
