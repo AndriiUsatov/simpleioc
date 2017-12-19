@@ -1,5 +1,7 @@
 package ioc;
 
+import proxy.BenchmarkProxyHandler;
+
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -47,15 +49,6 @@ public class SimpleIoC {
         beans.put(beanName, bean);
     }
 
-    private Object createBenchmarkProxy(Object bean) {
-        return Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), bean.getClass().getInterfaces(), new InvocationHandler() {
-            @Override
-            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                System.out.println(method.getName());
-                return method.invoke(bean, args);
-            }
-        });
-    }
 
     private boolean isDefaultConstructor(Constructor constructor) {
         return constructor.getParameterCount() == 0;
@@ -109,5 +102,36 @@ public class SimpleIoC {
         }
         return initMethod;
     }
+
+//    private Object createBenchmarkProxy(Object bean) {
+//        return Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), bean.getClass().getInterfaces(), new InvocationHandler() {
+//            @Override
+//            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+//                System.out.println(method.getName());
+//                return method.invoke(bean, args);
+//            }
+//        });
+//    }
+    private Object createBenchmarkProxy(Object bean){
+        if(isAnnotatedMethodPresentInBean(bean, Benchmark.class))
+            return wrapBeanWithBenchmarkProxy(bean);
+        return bean;
+    }
+
+
+    private boolean isAnnotatedMethodPresentInBean(Object bean, Class clazz) {
+        for(Method method : bean.getClass().getDeclaredMethods()){
+            if(method.isAnnotationPresent(clazz))
+                return true;
+        }
+        return false;
+    }
+
+    private Object wrapBeanWithBenchmarkProxy(Object bean) {
+        ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+        Class[] interfaces = bean.getClass().getInterfaces();
+        return Proxy.newProxyInstance(classLoader, interfaces, new BenchmarkProxyHandler(bean));
+    }
+
 
 }

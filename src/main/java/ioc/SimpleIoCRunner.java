@@ -19,5 +19,6 @@ public class SimpleIoCRunner {
         //RepoBean.class
         SimpleIoC ioC = new SimpleIoC(config);
         RepoBeanInterface repoBean = (RepoBeanInterface) ioC.getBean("repoBean");
+        System.out.println(repoBean.calculate());
     }
 }
