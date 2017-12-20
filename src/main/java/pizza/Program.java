@@ -3,6 +3,8 @@ package pizza;
 import ioc.Config;
 import ioc.JavaConfig;
 import ioc.SimpleIoC;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import pizza.dao.OrderDaoImpl;
 import pizza.dao.PizzaDaoImpl;
 import pizza.repo.OrderRepo;
@@ -19,7 +21,10 @@ import java.util.HashMap;
 
 public class Program {
     public static void main(String[] args) {
-        SimpleIoC simpleIoC = buildIoC();
+//        SimpleIoC simpleIoC = buildIoC();
+
+        ConfigurableApplicationContext simpleIoC = new ClassPathXmlApplicationContext("serviceContext.xml");
+
         PizzaService pizzaService = (PizzaService) simpleIoC.getBean("pizzaService");
         OrderService orderService = (OrderService) simpleIoC.getBean("orderService");
 

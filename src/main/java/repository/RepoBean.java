@@ -5,18 +5,17 @@ import ioc.Benchmark;
 public class RepoBean implements RepoBeanInterface {
 
     public RepoBean() {
-        System.out.println("Created");
+        System.out.println("Hello world from bean constructor");
     }
 
     public void init() {
-        System.out.println("Init is called");
+        System.out.println("I am in init");
     }
 
-    @Override
     @Benchmark
     public double calculate() {
         double sum = 0;
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10000; i++) {
             double x = sum;
             sum += Math.sin(x) * Math.sin(x) + Math.cos(x) * Math.cos(x);
         }

@@ -25,4 +25,8 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order(Arrays.asList(pizzas), user);
         return orderDao.save(order);
     }
+
+    public  Order createEmptyOrder(Integer i){
+        return new Order();
+    }
 }

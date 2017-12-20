@@ -1,6 +1,5 @@
 package ioc;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
@@ -9,55 +8,49 @@ import static org.junit.Assert.*;
 
 public class SimpleIoCTest {
 
-    private Config config;
-    private BeanDefinition beanDefinition;
-    private String beanName;
+    static class TestBean {}
 
-    @Before
-    public void setUp() {
-        beanName = "beanName";
-        Class<?> beanClass = TestBean.class;
+    static class TestBeanWithDependency {
+        public final TestBean testBean;
+//        public final TestBeanWithDependency beanWithDependency;
 
-        beanDefinition = new BeanDefinition() {
-            @Override
-            public String getBeanName() {
-                return beanName;
-            }
+        public TestBeanWithDependency(TestBean testBean) {
+            this.testBean = testBean;
+        }
 
-            @Override
-            public Class getBeanClass() {
-                return beanClass;
-            }
-        };
-
-        config = new Config() {
-            @Override
-            public List<String> beanNames() {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public BeanDefinition getDefinition(String beanName) {
-                return beanDefinition;
-            }
-        };
+//        public TestBeanWithDependency(RepoBean testBean, TestBeanWithDependency testBeanWithDependency){
+//            this.testBean = testBean;
+//            this.beanWithDependency = testBeanWithDependency;
+//        }
     }
 
+    private Config config = new Config() {
+        @Override
+        public List<String> beanNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public BeanDefinition beanDefinition(String beanName) {
+            return null;
+        }
+    };
+
     @Test
-    public void createContainer() {
+    public void createIoCContainer() {
         new SimpleIoC(config);
     }
 
     @Test
-    public void beanDefShouldBeEmpty() {
+    public void containerBeanDefinitionsShouldBeEmpty() {
         SimpleIoC simpleIoC = new SimpleIoC(config);
         List<String> beanDefinitions = simpleIoC.beanDefinitions();
         assertEquals(Collections.emptyList(), beanDefinitions);
     }
 
     @Test
-    public void beanDefWithOneBeanInConfig() {
-        String beanName = "beanName";
+    public void beanDefinitionWithOneBeanConfig() {
+        String beanName = "superBean";
 
         Config config = new Config() {
             @Override
@@ -66,8 +59,8 @@ public class SimpleIoCTest {
             }
 
             @Override
-            public BeanDefinition getDefinition(String beanName) {
-                return beanDefinition;
+            public BeanDefinition beanDefinition(String beanName) {
+                return null;
             }
         };
 
@@ -78,19 +71,19 @@ public class SimpleIoCTest {
     }
 
     @Test
-    public void beanDefWithSeveralBeansInCongig() {
-        String beanName1 = "bean1";
-        String beanName2 = "bean2";
+    public void beanDefinitionWithSeveralBeansConfig() {
+        String beanName1 = "superBean1";
+        String beanName2 = "superBean2";
 
         Config config = new Config() {
             @Override
-            public BeanDefinition getDefinition(String beanName) {
-                return beanDefinition;
+            public List<String> beanNames() {
+                return Arrays.asList(beanName1, beanName2);
             }
 
             @Override
-            public List<String> beanNames() {
-                return Arrays.asList(beanName1, beanName2);
+            public BeanDefinition beanDefinition(String beanName) {
+                return null;
             }
         };
 
@@ -100,20 +93,32 @@ public class SimpleIoCTest {
         assertEquals(Arrays.asList(beanName1, beanName2), beanDefinitions);
     }
 
+
     @Test(expected = IllegalArgumentException.class)
-    public void beanDefNamesInConfigShouldBeUnique() {
-        String beanName1 = "bean1";
-        String beanName2 = "bean1";
+    public void beanNamesInConfigShouldBeUnique() {
+        String beanName1 = "superBean1";
+        String beanName2 = "superBean1";
 
         Config config = new Config() {
+
             @Override
             public List<String> beanNames() {
                 return Arrays.asList(beanName1, beanName2);
             }
 
             @Override
-            public BeanDefinition getDefinition(String beanName) {
-                return null;
+            public BeanDefinition beanDefinition(String beanName) {
+                return new BeanDefinition() {
+                    @Override
+                    public String getBeanName() {
+                        return beanName;
+                    }
+
+                    @Override
+                    public Class<?> getBeanClass() {
+                        return TestBean.class;
+                    }
+                };
             }
         };
 
@@ -122,6 +127,10 @@ public class SimpleIoCTest {
 
     @Test
     public void getBeanWithOneBeanInConfig() {
+
+        String beanName = "beanName";
+        Class<?> beanClass = TestBean.class;
+
         Config config = new Config() {
             @Override
             public List<String> beanNames() {
@@ -129,19 +138,29 @@ public class SimpleIoCTest {
             }
 
             @Override
-            public BeanDefinition getDefinition(String beanName) {
-                return beanDefinition;
+            public BeanDefinition beanDefinition(String beanName) {
+                return new BeanDefinition() {
+                    @Override
+                    public String getBeanName() {
+                        return beanName;
+                    }
+
+                    @Override
+                    public Class getBeanClass() {
+                        return beanClass;
+                    }
+                };
             }
         };
 
         SimpleIoC simpleIoC = new SimpleIoC(config);
         TestBean testBean = (TestBean) simpleIoC.getBean(beanName);
-
         assertNotNull(testBean);
     }
 
     @Test
-    public void getBeanSeveralTimes() {
+    public void getSameBeanSeveralTimes() {
+        String beanName = "bean";
         Config config = new Config() {
             @Override
             public List<String> beanNames() {
@@ -149,80 +168,87 @@ public class SimpleIoCTest {
             }
 
             @Override
-            public BeanDefinition getDefinition(String beanName) {
-                return beanDefinition;
+            public BeanDefinition beanDefinition(String beanName) {
+                return new BeanDefinition() {
+                    @Override
+                    public String getBeanName() {
+                        return beanName;
+                    }
+
+                    @Override
+                    public Class getBeanClass() {
+                        return TestBean.class;
+                    }
+                };
             }
         };
 
         SimpleIoC simpleIoC = new SimpleIoC(config);
-
-        TestBean testBean1 = (TestBean) simpleIoC.getBean(beanName);
-        TestBean testBean2 = (TestBean) simpleIoC.getBean(beanName);
+        TestBean testBean1 = (TestBean)simpleIoC.getBean(beanName);
+        TestBean testBean2 = (TestBean)simpleIoC.getBean(beanName);
 
         assertSame(testBean1, testBean2);
     }
 
+
     @Test
-    public void getBeanWithDependencies() {
+    public void getBeanWithDependencies() throws Exception {
+
         String testBeanName = "testBean";
         Class<?> testBeanClass = TestBean.class;
 
-        String testDependentBeanName = "dependentBean";
-        Class<?> testDependentBeanClass = TestBeanWithDependency.class;
+        String dependantBeanName = "testBeanWithDependency";
+        Class<?> dependantBeanClass = TestBeanWithDependency.class;
 
         Config config = new Config() {
-
             @Override
             public List<String> beanNames() {
-                return Arrays.asList(testBeanName, testDependentBeanName);
+                return Arrays.asList(testBeanName, dependantBeanName);
             }
 
             @Override
-            public BeanDefinition getDefinition(String beanName) {
+            public BeanDefinition beanDefinition(String beanName) {
 
-                Map<String, BeanDefinition> beanDefinitionMap = new HashMap<>();
-                beanDefinitionMap.put(testBeanName, new BeanDefinition() {
-                    @Override
-                    public String getBeanName() {
-                        return testBeanName;
-                    }
+                Map<String, BeanDefinition> beanDefinitions = new HashMap<>();
+                beanDefinitions.put(testBeanName,
+                        new BeanDefinition() {
+                            @Override
+                            public String getBeanName() {
+                                return testBeanName;
+                            }
 
-                    @Override
-                    public Class getBeanClass() {
-                        return testBeanClass;
-                    }
-                });
-                beanDefinitionMap.put(testDependentBeanName, new BeanDefinition() {
-                    @Override
-                    public String getBeanName() {
-                        return testDependentBeanName;
-                    }
+                            @Override
+                            public Class<?> getBeanClass() {
+                                return testBeanClass;
+                            }
+                        }
+                );
 
-                    @Override
-                    public Class getBeanClass() {
-                        return testDependentBeanClass;
-                    }
-                });
+                beanDefinitions.put(dependantBeanName,
+                        new BeanDefinition() {
+                            @Override
+                            public String getBeanName() {
+                                return dependantBeanName;
+                            }
 
-                return beanDefinitionMap.get(beanName);
+                            @Override
+                            public Class<?> getBeanClass() {
+                                return dependantBeanClass;
+                            }
+                        }
+                );
+
+                return beanDefinitions.get(beanName);
             }
-        }; //Config
+        };
 
         SimpleIoC simpleIoC = new SimpleIoC(config);
+        TestBeanWithDependency testBeanWithDependency = (TestBeanWithDependency) simpleIoC.getBean(dependantBeanName);
+        TestBean testBean = testBeanWithDependency.testBean;
 
-        assertNotNull(simpleIoC.getBean(testDependentBeanName));
-    }
+        assertNotNull(testBean);
 
-}
-
-class TestBean {
-}
-
-class TestBeanWithDependency {
-    public final TestBean testBean;
-
-    TestBeanWithDependency(TestBean testBean) {
-        this.testBean = testBean;
+        TestBean injectedTestBean = (TestBean) simpleIoC.getBean(testBeanName);
+        assertSame(injectedTestBean, testBean);
     }
 }
-

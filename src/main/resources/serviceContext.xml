@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="repoContext.xml"/>
+
+    <bean name="orderService" class="pizza.service.OrderServiceImpl">
+        <constructor-arg ref="orderDao"/>
+    </bean>
+    <bean name="pizzaService" class="pizza.service.PizzaServiceImpl">
+        <constructor-arg ref="pizzaDao"/>
+    </bean>
+
+
+    <bean name="order" factory-bean="orderService" factory-method="createEmptyOrder">
+        <constructor-arg value="10" index="0" type="java.lang.Integer"/>
+    </bean>
+
+    <bean name="b" class="example_services.ServiceB" init-method="init">
+        <constructor-arg ref="a"/>
+    </bean>
+    <bean name="a" class="example_services.ServiceA">
+        <!--<property name="b" ref="b"/>-->
+    </bean>
+
+</beans>

@@ -1,131 +1,130 @@
 package ioc;
 
+import org.apache.commons.text.WordUtils;
 import proxy.BenchmarkProxyHandler;
 
 import java.lang.reflect.*;
 import java.util.*;
 
 public class SimpleIoC {
-
-    private final Config config;
-    private final Map<String, Object> beans;
+    private Config config;
+    private Map<String, Object> container;
 
     public SimpleIoC(Config config) {
+        container = new HashMap<>();
         this.config = config;
-        beans = new HashMap<>();
-        checkForUniqueBeanNames(config.beanNames());
+        checkUniqueBeanNames();
     }
+
+
+    private void checkUniqueBeanNames() {
+        Set<String> beanNames = new HashSet<>(config.beanNames());
+        if (beanNames.size() < config.beanNames().size()) {
+            throw new IllegalArgumentException();
+        }
+    }
+
 
     public List<String> beanDefinitions() {
         return config.beanNames();
     }
 
-    public Object getBean(String beanName) {
-        if (!beans.containsKey(beanName)) {
-            BeanDefinition beanDefinition = config.getDefinition(beanName);
 
-            try {
-                buildBeanFromDefinition(beanDefinition);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    public Object getBean(String beanName) {
+        if (container.containsKey(beanName)) {
+            return container.get(beanName);
         }
-        return beans.get(beanName);
+
+        try {
+            BeanDefinition beanDefinition = config.beanDefinition(beanName);
+            Object bean = buildBeanFromDefinition(beanDefinition);
+            container.put(beanName, bean);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalArgumentException();
+        }
+
+        return container.get(beanName);
     }
 
-    private void buildBeanFromDefinition(BeanDefinition beanDefinition) throws Exception {
+
+    private Object buildBeanFromDefinition(BeanDefinition beanDefinition) throws Exception  {
         Class<?> beanClass = beanDefinition.getBeanClass();
         Constructor constructor = beanClass.getDeclaredConstructors()[0];
-        String beanName = beanDefinition.getBeanName();
-        Object bean;
 
-        if (isDefaultConstructor(constructor))
-            bean = addBeanWithoutParameters(beanName);
-        else
-            bean = addBeanWithParameters(constructor);
+        Object bean;
+        if (isDefaultConstructor(constructor)) {
+            bean = instantiateBeanWithDefaultConstructor(beanClass);
+        } else {
+            bean = instantiateBeanWithConstructor(beanClass);
+        }
+
+        callInitMethod(bean);
 
         bean = createBenchmarkProxy(bean);
 
-        beans.put(beanName, bean);
+        return bean;
     }
 
 
     private boolean isDefaultConstructor(Constructor constructor) {
-        return constructor.getParameterCount() == 0;
+        int constructorParametersCount = constructor.getParameterCount();
+        return constructorParametersCount == 0;
     }
 
-    private Object addBeanWithoutParameters(String beanName) throws Exception {
-        Object bean = config.getDefinition(beanName).getBeanClass().newInstance();
-        callInitMethod(bean);
-        return bean;
+
+    private String getBeanNameFromParameterClassName(Parameter parameter) {
+        return WordUtils.uncapitalize(parameter.getType().getSimpleName());
     }
 
-    private Object addBeanWithParameters(Constructor<?> constructor) throws Exception {
-        List params = new ArrayList();
-        Parameter[] parameters = constructor.getParameters();
 
-        for (Parameter parameter : parameters) {
-            String keyClassName = getParameterClassName(parameter);
-            params.add(getBean(keyClassName));
+    private Object instantiateBeanWithConstructor(Class clazz) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        Constructor constructor = clazz.getDeclaredConstructors()[0];
+        int constructorParametersCount = constructor.getParameterCount();
+        Object[] arguments = new Object[constructorParametersCount];
+
+        for (int index = 0; index < constructorParametersCount; index++) {
+            Parameter parameter = constructor.getParameters()[index];
+            String injectedBeanName =getBeanNameFromParameterClassName(parameter);
+            arguments[index] = getBean(injectedBeanName);
         }
 
-        Object bean = constructor.newInstance(params.toArray(new Object[params.size()]));
-        callInitMethod(bean);
-
-        return bean;
+        return constructor.newInstance(arguments);
     }
 
-    private void checkForUniqueBeanNames(List<String> beanNames) {
-        Set<String> names = new HashSet<>(beanNames);
-        if (beanNames.size() != names.size())
-            throw new IllegalArgumentException("Definition names should be unique");
+
+    private Object instantiateBeanWithDefaultConstructor(Class clazz) throws IllegalAccessException, InstantiationException {
+        return clazz.newInstance();
     }
 
-    private String getParameterClassName(Parameter parameter) {
-        return parameter.getType().getSimpleName().substring(0, 1).toLowerCase()
-                + parameter.getType().getSimpleName().substring(1);
-    }
 
-    private void callInitMethod(Object bean) throws Exception {
-        Method initMethod = getInitMethod(bean);
-        if (initMethod != null) {
-            initMethod.invoke(bean);
-        }
-    }
-
-    private Method getInitMethod(Object bean) {
-        Method initMethod;
+    private void callInitMethod(Object bean) throws Exception{
         try {
-            initMethod = bean.getClass().getMethod("init");
+            Method method = bean.getClass().getDeclaredMethod("init");
+            method.invoke(bean);
         } catch (NoSuchMethodException e) {
-            initMethod = null;
+          //  e.printStackTrace();
         }
-        return initMethod;
     }
 
-//    private Object createBenchmarkProxy(Object bean) {
-//        return Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), bean.getClass().getInterfaces(), new InvocationHandler() {
-//            @Override
-//            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-//                System.out.println(method.getName());
-//                return method.invoke(bean, args);
-//            }
-//        });
-//    }
-    private Object createBenchmarkProxy(Object bean){
-        if(isAnnotatedMethodPresentInBean(bean, Benchmark.class))
+
+    private Object createBenchmarkProxy(Object bean) {
+        if (isAnnotatedMethodPresentInBean(bean, Benchmark.class)) {
             return wrapBeanWithBenchmarkProxy(bean);
+        }
         return bean;
     }
 
 
     private boolean isAnnotatedMethodPresentInBean(Object bean, Class clazz) {
-        for(Method method : bean.getClass().getDeclaredMethods()){
-            if(method.isAnnotationPresent(clazz))
+        for (Method method: bean.getClass().getDeclaredMethods()) {
+            if (method.isAnnotationPresent(clazz)) {
                 return true;
+            }
         }
-        return false;
+        return false; // there is no clazz annotation present in this bean
     }
+
 
     private Object wrapBeanWithBenchmarkProxy(Object bean) {
         ClassLoader classLoader = ClassLoader.getSystemClassLoader();
@@ -133,5 +132,8 @@ public class SimpleIoC {
         return Proxy.newProxyInstance(classLoader, interfaces, new BenchmarkProxyHandler(bean));
     }
 
-
 }
+
+
+
+

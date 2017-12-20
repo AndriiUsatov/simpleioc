@@ -8,6 +8,12 @@ public class Order {
     private User user;
     private double totalPrice;
 
+    public Order(){}
+
+    public Order(List<Pizza> pizzas) {
+        this.pizzas = pizzas;
+    }
+
     public Order(int orderId, List<Pizza> pizzas, User user) {
         this(pizzas, user);
         this.orderId = orderId;

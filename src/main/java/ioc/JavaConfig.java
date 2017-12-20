@@ -1,11 +1,11 @@
 package ioc;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class JavaConfig implements Config {
-
-    private final Map<String, Class<?>> beanDescription;
-
+    private Map<String, Class<?>> beanDescription;
     public JavaConfig(Map<String, Class<?>> beanDescription) {
         this.beanDescription = beanDescription;
     }
@@ -16,7 +16,7 @@ public class JavaConfig implements Config {
     }
 
     @Override
-    public BeanDefinition getDefinition(String beanName) {
+    public BeanDefinition beanDefinition(String beanName) {
         Class<?> beanClass = beanDescription.get(beanName);
         return new SimpleBeanDefinition(beanName, beanClass);
     }

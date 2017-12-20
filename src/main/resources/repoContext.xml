@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean name="orderRepo" class="pizza.repo.OrderRepo"/>
+    <bean name="pizzaRepo" class="pizza.repo.PizzaRepo"/>
+    <bean name="orderDao" class="pizza.dao.OrderDaoImpl">
+        <constructor-arg ref="orderRepo"/>
+    </bean>
+    <bean name="pizzaDao" class="pizza.dao.PizzaDaoImpl">
+        <constructor-arg ref="pizzaRepo"/>
+    </bean>
+
+</beans>
